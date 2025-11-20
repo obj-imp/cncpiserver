@@ -1,0 +1,12 @@
+[Unit]
+Description=ShopServer inotify watcher for access logging
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/shopserver-inotify-watcher.py
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target

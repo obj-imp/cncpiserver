@@ -1,0 +1,12 @@
+[Unit]
+Description=ShopServer UI (Flask)
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/shopserver/ui
+ExecStart=/opt/shopserver/venv/bin/python /opt/shopserver/ui/app.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

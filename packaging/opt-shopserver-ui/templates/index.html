@@ -1,0 +1,26 @@
+<!doctype html>
+<title>ShopServer status</title>
+<h1>ShopServer: {{cfg.hostname}}</h1>
+<p>How to connect:</p>
+<ul>
+  <li>From DOS (SMB1): net use z: \\{{cfg.hostname}}\main (DOS clients require SMB1)</li>
+  <li>From Windows: use \\{{cfg.hostname}}\main and use username/password <b>{{cfg.samba_user}}/{{cfg.samba_pass}}</b> for read/write.</li>
+  <li>From macOS: Finder -> Go -> Connect to Server -> smb://{{cfg.hostname}}/main</li>
+</ul>
+
+<h2>Main share</h2>
+<p>Path: {{main.path}}</p>
+
+<h2>Removable drives</h2>
+{% if rem %}
+  <ul>
+  {% for r in rem %}
+    <li>{{r.name}} — mount: {{r.path}} — free_kb: {{r.free_kb}}</li>
+  {% endfor %}
+  </ul>
+{% else %}
+  <p>No removable drives currently mounted.</p>
+{% endif %}
+
+<h2>Recent access events (tail)</h2>
+<pre style="max-height:40vh; overflow:auto; background:#f4f4f4; padding:8px">{{ logtail|join('') }}</pre>

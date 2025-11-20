@@ -1,0 +1,2 @@
+KERNEL=="sd[a-z]|sd[a-z][0-9]|nvme*n*p*", ACTION=="add", RUN+="/usr/local/bin/shopserver-device-handler.sh add /dev/%k"
+KERNEL=="sd[a-z]|sd[a-z][0-9]|nvme*n*p*", ACTION=="remove", RUN+="/usr/local/bin/shopserver-device-handler.sh remove /dev/%k"

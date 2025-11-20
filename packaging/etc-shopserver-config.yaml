@@ -1,0 +1,7 @@
+hostname: shopserver
+samba_user: shopserver
+samba_pass: shopserver
+guest_ok_main: false
+main_path: /srv/shopserver/main
+removable_base: /srv/shopserver/removable
+images_path: /srv/shopserver/images
