@@ -10,12 +10,16 @@
 
 <h2>Main share</h2>
 <p>Path: {{main.path}}</p>
+<ul>
+  <li>SMB2+/SMB3 clients: <code>\\{{cfg.hostname}}\\main</code></li>
+  <li>Legacy SMB1 clients: <code>\\{{cfg.hostname}}\\{{cfg.get('smb1_share_name', cfg.hostname ~ '-smb1')}}</code></li>
+</ul>
 
 <h2>Removable drives</h2>
 {% if rem %}
   <ul>
   {% for r in rem %}
-    <li>{{r.name}} — mount: {{r.path}} — free_kb: {{r.free_kb}}</li>
+    <li>{{r.name}} — mount: {{r.path}} — free_kb: {{r.free_kb}} — SMB1 alias: {{r.name}}-smb1</li>
   {% endfor %}
   </ul>
 {% else %}
