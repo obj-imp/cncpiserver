@@ -24,10 +24,6 @@ CONFIG_PATH="${ETC_SHOPSERVER_DIR}/config.yaml"
 SMB_DIR="/etc/samba/smb.d"
 UI_DIR="/opt/shopserver/ui"
 
-sanitize_share_name() {
-  echo "$1" | tr -c '[:alnum:]._-' '_'
-}
-
 DEFAULT_DATA_USER="${SUDO_USER:-pi}"
 if ! id -u "$DEFAULT_DATA_USER" >/dev/null 2>&1; then
   DEFAULT_DATA_USER="root"
@@ -117,7 +113,6 @@ HOSTNAME=$(prompt HOSTNAME "$DEFAULT_HOSTNAME" "Network hostname")
 USERNAME=$(prompt USERNAME "$DEFAULT_USER" "Samba username for write access")
 PASSWORD=$(prompt PASSWORD "$DEFAULT_PASS" "Samba password")
 GUEST_OK=$(prompt GUEST_OK "no" "Allow guest (anonymous) access to 'main'? (yes/no)")
-SMB1_SHARE_NAME=$(sanitize_share_name "${HOSTNAME}-smb1")
 
 echo "Installing required packages..."
 export DEBIAN_FRONTEND=noninteractive
@@ -143,7 +138,6 @@ data_user: $DATA_USER
 data_group: $DATA_GROUP
 data_uid: $DATA_UID
 data_gid: $DATA_GID
-smb1_share_name: $SMB1_SHARE_NAME
 EOF
 
 echo "Setting system hostname to $HOSTNAME ..."
@@ -158,9 +152,7 @@ cp -r "${REPO_DIR}/packaging/usr-local-bin/"* /usr/local/bin/
 cp "${REPO_DIR}/packaging/etc-udev/99-shopserver.rules" /etc/udev/rules.d/99-shopserver.rules
 cp "${REPO_DIR}/packaging/etc-samba/smb.conf" /etc/samba/smb.conf
 cp "${REPO_DIR}/packaging/etc-samba/smb.d-main.conf" /etc/samba/smb.d/main.conf
-cp "${REPO_DIR}/packaging/etc-samba/smb.d-main-smb1.conf" /etc/samba/smb.d/main-smb1.conf
 cp "${REPO_DIR}/packaging/etc-samba/smb.d-removable.conf" /etc/samba/smb.d/removable.conf
-cp "${REPO_DIR}/packaging/etc-samba/smb.d-removable-smb1.conf" /etc/samba/smb.d/removable-smb1.conf
 cp -r "${REPO_DIR}/packaging/opt-shopserver-ui/"* /opt/shopserver/ui/
 cp "${REPO_DIR}/packaging/etc-systemd/shopserver-watcher.service" /etc/systemd/system/shopserver-watcher.service
 cp "${REPO_DIR}/packaging/etc-systemd/shopserver-ui.service" /etc/systemd/system/shopserver-ui.service
@@ -223,17 +215,6 @@ echo "Configuring Samba global and main share..."
 GUESTFLAG=$( [ "$GUEST_OK" = "yes" ] && echo "yes" || echo "no" )
 cat > /etc/samba/smb.d/main.conf <<EOF
 [main]
-   path = $MAIN_PATH
-   read only = no
-   browsable = yes
-   guest ok = $GUESTFLAG
-   force user = $DATA_USER
-   create mask = 0775
-   directory mask = 2775
-EOF
-
-cat > /etc/samba/smb.d/main-smb1.conf <<EOF
-[$SMB1_SHARE_NAME]
    path = $MAIN_PATH
    read only = no
    browsable = yes

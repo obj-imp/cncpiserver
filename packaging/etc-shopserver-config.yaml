@@ -9,4 +9,3 @@ data_user: shopserver
 data_group: shopserver
 data_uid: 1000
 data_gid: 1000
-smb1_share_name: shopserver-smb1

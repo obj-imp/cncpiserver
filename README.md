@@ -16,10 +16,9 @@ See SPEC.md for architecture and design reasoning.
 
 ## Shares & protocols
 
-- Modern SMB2+/SMB3 clients (macOS, Windows, Linux) should use `\\<hostname>\main`.
-- Legacy SMB1-only clients (DOS/Win9x) should use `\\<hostname>\<hostname>-smb1` (the installer appends `-smb1` to whatever hostname you choose).
-- Removable disks are exported twice: `removable`, `removable2`, … for SMB2+/SMB3 and `removable-smb1`, `removable2-smb1`, … for SMB1-only machines. All variants point at the same mounted directories.
-- SMB1 support requires weaker authentication (LANMAN/NTLMv1) which the installer enables automatically; use the SMB1 shares only when needed.
+- The server uses SMB2+ by default for security and macOS/Windows compatibility.
+- **Note**: This means legacy DOS/Win9x clients that only support SMB1 will NOT be able to connect. If you need SMB1 support, you'll need to manually set `server min protocol = NT1` in `/etc/samba/smb.conf`, but this will prevent macOS from connecting.
+- For mixed environments, consider running a separate Samba instance on a different port for SMB1 clients.
 
 ---
 
@@ -44,7 +43,7 @@ Quick start (target: fresh Pi OS 64-bit):
    so it works on systems that do not provide the historical `pi` account.
 6. After installation you can:
    - From macOS Finder: `Cmd+K` → `smb://shopserver/main` (replace `shopserver` with your hostname or IP).
-   - From legacy DOS/Win9x systems: `net use z: \\shopserver\shopserver-smb1`.
+   - From Windows: `\\shopserver\main` in File Explorer.
    - From Linux: `mount -t cifs -o vers=3.0 //shopserver/main /mnt/shopserver`.
 
 Files included in this repo:
@@ -55,6 +54,6 @@ Files included in this repo:
   - `etc-systemd/` service unit templates
   - `etc-udev/` udev rule
   - `opt-shopserver-ui/` Flask app & templates
-  - `etc-samba/` sample `smb.conf`, `smb.d/main.conf`, `smb.d/main-smb1.conf`, `smb.d/removable*.conf`
+  - `etc-samba/` sample `smb.conf`, `smb.d/main.conf`, `smb.d/removable.conf`
 
 You can inspect files and then run the installer on the Pi. The installer will copy these templates into the appropriate system locations.
