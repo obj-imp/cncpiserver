@@ -27,7 +27,7 @@ def list_removable():
 @app.route("/")
 def index():
     cfg = load_config()
-    main = {"path":cfg.get("main_path","/srv/shopserver/main")}
+    main = {"path":cfg.get("main_path","/srv/shopserver/shopserver")}
     rem = list_removable()
     logtail = []
     try:

@@ -1,9 +1,9 @@
-# ShopServer (Raspberry Pi 5) — README
+# ShopServer (Raspberry Pi 4/5) — README
 
 This repository contains the installer and supporting files for ShopServer:
-a headless Raspberry Pi 5 NVMe-based file server that exposes:
+a headless Raspberry Pi 4/5 file server that exposes:
 
-- `main` network share (on NVMe)
+- `main` network share (backs the `/srv/shopserver/shopserver` directory; if a dedicated NVMe is formatted it will be mounted there)
 - auto-mounted `removable`, `removable2`, ... shares for USB disks
 - a minimal Flask web UI (status, access logs)
 - udev-based auto-mounting and Samba share generation
@@ -21,11 +21,13 @@ Quick start (target: fresh Pi OS 64-bit):
    chmod +x install.sh
    sudo ./install.sh
    ```
-4. To format an NVMe and use it as `main`, pass:
+4. To format a *non-boot* NVMe and use it for the `main` share, pass:
    ```bash
    sudo ./install.sh --format-nvme /dev/nvme0n1
    ```
    The script will require an explicit `YES` confirmation before destructive actions.
+   If the Pi is already booting from that NVMe (or from an SD card), the installer will refuse to format it
+   and will instead create `/srv/shopserver/shopserver` on the boot volume for the primary share.
 
 Files included in this repo:
 - `install.sh` — interactive installer (supports `--format-nvme`)

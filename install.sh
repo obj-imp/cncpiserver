@@ -14,12 +14,76 @@ done
 DEFAULT_HOSTNAME="shopserver"
 DEFAULT_USER="shopserver"
 DEFAULT_PASS="shopserver"
-MAIN_PATH="/srv/shopserver/main"
-IMAGES_PATH="/srv/shopserver/images"
-REMOVABLE_BASE="/srv/shopserver/removable"
+SHOPSERVER_ROOT="/srv/shopserver"
+SHOPSERVER_DIR_NAME="shopserver"
+MAIN_PATH="${SHOPSERVER_ROOT}/${SHOPSERVER_DIR_NAME}"
+IMAGES_PATH="${SHOPSERVER_ROOT}/images"
+REMOVABLE_BASE="${SHOPSERVER_ROOT}/removable"
 CONFIG_PATH="/etc/shopserver/config.yaml"
 SMB_DIR="/etc/samba/smb.d"
 UI_DIR="/opt/shopserver/ui"
+
+canonical_block_path() {
+  local dev="$1"
+  if [ -z "$dev" ]; then
+    echo ""
+    return
+  fi
+  if command -v realpath >/dev/null 2>&1; then
+    realpath "$dev" 2>/dev/null && return
+  fi
+  readlink -f "$dev" 2>/dev/null || echo "$dev"
+}
+
+detect_root_block() {
+  local root_src parent
+  root_src=$(findmnt -n -o SOURCE -T / || true)
+  if [ -z "$root_src" ]; then
+    echo ""
+    return
+  fi
+  if [[ "$root_src" != /dev/* ]]; then
+    root_src=$(readlink -f "$root_src" 2>/dev/null || echo "$root_src")
+  fi
+  if [ ! -b "$root_src" ]; then
+    echo ""
+    return
+  fi
+  parent=$(lsblk -no PKNAME "$root_src" 2>/dev/null || true)
+  if [ -n "$parent" ]; then
+    echo "/dev/$parent"
+  else
+    echo "$root_src"
+  fi
+}
+
+is_boot_device_target() {
+  local target="$1"
+  local canon_target parent
+  if [ -z "$ROOT_BLOCK_CANON" ]; then
+    return 1
+  fi
+  canon_target=$(canonical_block_path "$target")
+  if [ -z "$canon_target" ]; then
+    return 1
+  fi
+  if [ "$canon_target" = "$ROOT_BLOCK_CANON" ]; then
+    return 0
+  fi
+  parent=$(lsblk -no PKNAME "$canon_target" 2>/dev/null || true)
+  if [ -n "$parent" ] && [ "/dev/$parent" = "$ROOT_BLOCK_CANON" ]; then
+    return 0
+  fi
+  return 1
+}
+
+ROOT_BLOCK_DEVICE=$(detect_root_block)
+ROOT_BLOCK_CANON=$(canonical_block_path "$ROOT_BLOCK_DEVICE")
+if [ -n "$ROOT_BLOCK_CANON" ]; then
+  echo "Detected root block device: $ROOT_BLOCK_CANON"
+else
+  echo "Warning: unable to determine root block device automatically."
+fi
 
 prompt() {
   local var="$1"; local def="$2"; local q="$3"
@@ -85,6 +149,13 @@ chown -R pi:pi "$MAIN_PATH"
 chmod -R 2775 "$MAIN_PATH"
 
 # Optionally format NVMe
+if [ -n "$FORMAT_DEVICE" ]; then
+  if is_boot_device_target "$FORMAT_DEVICE"; then
+    echo "Detected that $FORMAT_DEVICE contains the running OS. Skipping format and using $MAIN_PATH instead."
+    FORMAT_DEVICE=""
+  fi
+fi
+
 if [ -n "$FORMAT_DEVICE" ]; then
   echo "NVMe format requested: $FORMAT_DEVICE"
   if [ ! -b "$FORMAT_DEVICE" ]; then
