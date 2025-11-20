@@ -241,10 +241,6 @@ cat > /etc/samba/smb.d/main-smb1.conf <<EOF
    force user = $DATA_USER
    create mask = 0775
    directory mask = 2775
-   server min protocol = NT1
-   server max protocol = NT1
-   lanman auth = yes
-   ntlm auth = yes
 EOF
 
 echo "Creating samba user: $USERNAME"
