@@ -5,3 +5,7 @@ guest_ok_main: false
 main_path: /srv/shopserver/shopserver
 removable_base: /srv/shopserver/removable
 images_path: /srv/shopserver/images
+data_user: shopserver
+data_group: shopserver
+data_uid: 1000
+data_gid: 1000

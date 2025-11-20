@@ -19,9 +19,20 @@ SHOPSERVER_DIR_NAME="shopserver"
 MAIN_PATH="${SHOPSERVER_ROOT}/${SHOPSERVER_DIR_NAME}"
 IMAGES_PATH="${SHOPSERVER_ROOT}/images"
 REMOVABLE_BASE="${SHOPSERVER_ROOT}/removable"
-CONFIG_PATH="/etc/shopserver/config.yaml"
+ETC_SHOPSERVER_DIR="/etc/shopserver"
+CONFIG_PATH="${ETC_SHOPSERVER_DIR}/config.yaml"
 SMB_DIR="/etc/samba/smb.d"
 UI_DIR="/opt/shopserver/ui"
+
+DEFAULT_DATA_USER="${SUDO_USER:-pi}"
+if ! id -u "$DEFAULT_DATA_USER" >/dev/null 2>&1; then
+  DEFAULT_DATA_USER="root"
+fi
+DEFAULT_DATA_GROUP=$(id -gn "$DEFAULT_DATA_USER" 2>/dev/null || echo "root")
+DATA_USER="$DEFAULT_DATA_USER"
+DATA_GROUP="$DEFAULT_DATA_GROUP"
+DATA_UID=$(id -u "$DATA_USER" 2>/dev/null || echo 0)
+DATA_GID=$(id -g "$DATA_USER" 2>/dev/null || echo 0)
 
 canonical_block_path() {
   local dev="$1"
@@ -96,6 +107,8 @@ if [ "$EUID" -ne 0 ]; then
   echo "Run as root: sudo $0"; exit 1
 fi
 
+echo "Data directories will be owned by ${DATA_USER}:${DATA_GROUP} (uid=${DATA_UID} gid=${DATA_GID})"
+
 HOSTNAME=$(prompt HOSTNAME "$DEFAULT_HOSTNAME" "Network hostname")
 USERNAME=$(prompt USERNAME "$DEFAULT_USER" "Samba username for write access")
 PASSWORD=$(prompt PASSWORD "$DEFAULT_PASS" "Samba password")
@@ -104,14 +117,15 @@ GUEST_OK=$(prompt GUEST_OK "no" "Allow guest (anonymous) access to 'main'? (yes/
 echo "Installing required packages..."
 export DEBIAN_FRONTEND=noninteractive
 apt update
-apt install -y samba avahi-daemon python3 python3-venv python3-pip inotify-tools dosfstools sgdisk jq || true
+apt install -y samba avahi-daemon python3 python3-venv python3-pip inotify-tools dosfstools gdisk jq || true
 
 echo "Creating directories..."
-mkdir -p "$MAIN_PATH" "$IMAGES_PATH" "$REMOVABLE_BASE" "$SMB_DIR" "$UI_DIR"
-chown -R pi:pi /srv/shopserver || true
+mkdir -p "$MAIN_PATH" "$IMAGES_PATH" "$REMOVABLE_BASE" "$SMB_DIR" "$UI_DIR" "$ETC_SHOPSERVER_DIR"
+chown -R "$DATA_USER":"$DATA_GROUP" /srv/shopserver || true
 chmod -R 2775 /srv/shopserver
 
 echo "Writing base config to $CONFIG_PATH ..."
+mkdir -p "$ETC_SHOPSERVER_DIR"
 cat > "$CONFIG_PATH" <<EOF
 hostname: $HOSTNAME
 samba_user: $USERNAME
@@ -120,6 +134,10 @@ guest_ok_main: $( [ "$GUEST_OK" = "yes" ] && echo "true" || echo "false" )
 main_path: $MAIN_PATH
 removable_base: $REMOVABLE_BASE
 images_path: $IMAGES_PATH
+data_user: $DATA_USER
+data_group: $DATA_GROUP
+data_uid: $DATA_UID
+data_gid: $DATA_GID
 EOF
 
 echo "Setting system hostname to $HOSTNAME ..."
@@ -137,7 +155,7 @@ cp "${REPO_DIR}/packaging/etc-samba/smb.d-main.conf" /etc/samba/smb.d/main.conf
 cp -r "${REPO_DIR}/packaging/opt-shopserver-ui/"* /opt/shopserver/ui/
 cp "${REPO_DIR}/packaging/etc-systemd/shopserver-watcher.service" /etc/systemd/system/shopserver-watcher.service
 cp "${REPO_DIR}/packaging/etc-systemd/shopserver-ui.service" /etc/systemd/system/shopserver-ui.service
-cp "${REPO_DIR}/packaging/etc-shopserver-config.yaml" /etc/shopserver/config.yaml || true
+cp "${REPO_DIR}/packaging/etc-shopserver-config.yaml" "${ETC_SHOPSERVER_DIR}/config.yaml.example" || true
 
 chmod +x /usr/local/bin/shopserver-*.sh || true
 chmod +x /usr/local/bin/shopserver-generate-smb.py || true
@@ -145,7 +163,7 @@ chmod +x /usr/local/bin/shopserver-inotify-watcher.py || true
 
 # create main path if not present
 mkdir -p "$MAIN_PATH"
-chown -R pi:pi "$MAIN_PATH"
+chown -R "$DATA_USER":"$DATA_GROUP" "$MAIN_PATH"
 chmod -R 2775 "$MAIN_PATH"
 
 # Optionally format NVMe
@@ -200,7 +218,7 @@ cat > /etc/samba/smb.d/main.conf <<EOF
    read only = no
    browsable = yes
    guest ok = $GUESTFLAG
-   force user = pi
+   force user = $DATA_USER
    create mask = 0775
    directory mask = 2775
 EOF

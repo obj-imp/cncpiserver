@@ -10,3 +10,4 @@ This document captures the architecture, design reasoning, tradeoffs, file layou
 - If a dedicated NVMe is provided *and is not the boot disk*, `install.sh --format-nvme` can be used to wipe, format, and mount it at that directory.
 - When the Pi boots from the NVMe (or from an SD card with no NVMe present), the installer automatically skips formatting and simply ensures the directory exists on the boot volume.
 - Removable USB storage handling is unchanged: udev rules mount devices beneath `/srv/shopserver/removable*` and `shopserver-generate-smb.py` emits per-device Samba stanzas.
+- The installer derives the filesystem/Samba owner from the invoking sudo user (falling back to `root`), removing the previous hard dependency on the `pi` account.

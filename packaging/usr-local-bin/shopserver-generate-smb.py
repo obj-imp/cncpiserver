@@ -7,6 +7,7 @@ if not os.path.exists(CONFIG):
 with open(CONFIG) as f:
     cfg = yaml.safe_load(f)
 rb = cfg.get("removable_base","/srv/shopserver/removable")
+data_user = cfg.get("data_user","pi")
 # clean old removable*.conf
 for f in glob.glob(os.path.join(SMB_DIR,"removable*.conf")):
     try:
@@ -26,7 +27,7 @@ for d in sorted(os.listdir(rb) if os.path.isdir(rb) else []):
    read only = no
    browsable = yes
    guest ok = yes
-   force user = pi
+   force user = {data_user}
    create mask = 0775
    directory mask = 2775
 """)

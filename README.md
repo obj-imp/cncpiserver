@@ -28,6 +28,8 @@ Quick start (target: fresh Pi OS 64-bit):
    The script will require an explicit `YES` confirmation before destructive actions.
    If the Pi is already booting from that NVMe (or from an SD card), the installer will refuse to format it
    and will instead create `/srv/shopserver/shopserver` on the boot volume for the primary share.
+5. The installer automatically picks the invoking sudo user (or `root` if unavailable) as the filesystem owner and Samba `force user`,
+   so it works on systems that do not provide the historical `pi` account.
 
 Files included in this repo:
 - `install.sh` — interactive installer (supports `--format-nvme`)
