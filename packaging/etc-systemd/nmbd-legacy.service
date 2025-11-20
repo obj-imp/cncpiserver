@@ -1,0 +1,18 @@
+[Unit]
+Description=Samba NMB Daemon (Legacy for DOS)
+Documentation=man:nmbd(8)
+              man:samba(7)
+              man:smb.conf(5)
+After=network.target
+
+[Service]
+Type=notify
+PIDFile=/run/samba/nmbd-legacy.pid
+ExecStart=/usr/sbin/nmbd --foreground --no-process-group --configfile=/etc/samba/smb-legacy.conf --pid-dir=/run/samba
+ExecReload=/bin/kill -HUP $MAINPID
+RuntimeDirectory=samba
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+

@@ -14,11 +14,28 @@ See SPEC.md for architecture and design reasoning.
 
 ---
 
-## Shares & protocols
+## Dual-protocol architecture
 
-- The server uses SMB2+ by default for security and macOS/Windows compatibility.
-- **Note**: This means legacy DOS/Win9x clients that only support SMB1 will NOT be able to connect. If you need SMB1 support, you'll need to manually set `server min protocol = NT1` in `/etc/samba/smb.conf`, but this will prevent macOS from connecting.
-- For mixed environments, consider running a separate Samba instance on a different port for SMB1 clients.
+ShopServer runs **two separate Samba instances** to support all client types:
+
+1. **Modern instance** (port 445): SMB2/SMB3 for macOS, Windows 10+, and Linux
+2. **Legacy instance** (port 4450): SMB1 for DOS and Windows 9x
+
+Both instances serve the same files from `/srv/shopserver/shopserver`. This allows:
+- macOS to connect securely via SMB2+ without being blocked by SMB1
+- DOS/Win9x to connect via SMB1 on a dedicated port
+- All clients to access the same shared files
+
+### Connection methods
+
+**Modern clients (macOS, Windows 10+, Linux):**
+- macOS: `⌘K` → `smb://shopserver/main`
+- Windows: `\\shopserver\main`
+- Linux: `mount -t cifs -o vers=3.0 //shopserver/main /mnt`
+
+**Legacy clients (DOS, Windows 9x):**
+- DOS: `net use z: \\shopserver:4450\main`
+- Win9x: Map network drive to `\\shopserver:4450\main`
 
 ---
 
@@ -41,10 +58,7 @@ Quick start (target: fresh Pi OS 64-bit):
    and will instead create `/srv/shopserver/shopserver` on the boot volume for the primary share.
 5. The installer automatically picks the invoking sudo user (or `root` if unavailable) as the filesystem owner and Samba `force user`,
    so it works on systems that do not provide the historical `pi` account.
-6. After installation you can:
-   - From macOS Finder: `Cmd+K` → `smb://shopserver/main` (replace `shopserver` with your hostname or IP).
-   - From Windows: `\\shopserver\main` in File Explorer.
-   - From Linux: `mount -t cifs -o vers=3.0 //shopserver/main /mnt/shopserver`.
+6. After installation, connect based on your client type (see "Connection methods" above).
 
 Files included in this repo:
 - `install.sh` — interactive installer (supports `--format-nvme`)
@@ -54,6 +68,6 @@ Files included in this repo:
   - `etc-systemd/` service unit templates
   - `etc-udev/` udev rule
   - `opt-shopserver-ui/` Flask app & templates
-  - `etc-samba/` sample `smb.conf`, `smb.d/main.conf`, `smb.d/removable.conf`
+  - `etc-samba/` sample `smb.conf` (SMB2+), `smb-legacy.conf` (SMB1), `smb.d/main.conf`, `smb.d/removable.conf`
 
 You can inspect files and then run the installer on the Pi. The installer will copy these templates into the appropriate system locations.

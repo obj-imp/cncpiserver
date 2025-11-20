@@ -1,25 +1,52 @@
 <!doctype html>
 <title>ShopServer status</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2em auto; padding: 0 1em; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+  .protocol-section { background: #f9f9f9; border-left: 4px solid #4a90e2; padding: 1em; margin: 1em 0; }
+  .protocol-section h3 { margin-top: 0; }
+  .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1em; margin: 1em 0; }
+</style>
 <h1>ShopServer: {{cfg.hostname}}</h1>
-<p>How to connect:</p>
-<ul>
-  <li>From DOS (SMB1): net use z: \\{{cfg.hostname}}\main (DOS clients require SMB1)</li>
-  <li>From Windows: use \\{{cfg.hostname}}\main and use username/password <b>{{cfg.samba_user}}/{{cfg.samba_pass}}</b> for read/write.</li>
-  <li>From macOS: Finder -> Go -> Connect to Server -> smb://{{cfg.hostname}}/main</li>
-</ul>
+
+<h2>Connection Instructions</h2>
+
+<div class="protocol-section">
+  <h3>🖥️ Modern Clients (macOS, Windows 10+, Linux)</h3>
+  <p><strong>Use SMB2/SMB3 on port 445 (default)</strong></p>
+  <ul>
+    <li><strong>macOS Finder:</strong> Press <code>⌘K</code> → Enter <code>smb://{{cfg.hostname}}/main</code></li>
+    <li><strong>Windows:</strong> File Explorer → <code>\\{{cfg.hostname}}\main</code></li>
+    <li><strong>Linux:</strong> <code>mount -t cifs -o vers=3.0 //{{cfg.hostname}}/main /mnt/share</code></li>
+  </ul>
+  <p>Credentials: <strong>{{cfg.samba_user}}</strong> / <strong>{{cfg.samba_pass}}</strong></p>
+</div>
+
+<div class="protocol-section">
+  <h3>💾 Legacy Clients (DOS, Windows 9x)</h3>
+  <p><strong>Use SMB1 on port 4450</strong></p>
+  <ul>
+    <li><strong>DOS:</strong> <code>net use z: \\{{cfg.hostname}}:4450\main</code></li>
+    <li><strong>Windows 9x:</strong> Map network drive to <code>\\{{cfg.hostname}}:4450\main</code></li>
+  </ul>
+  <p>Credentials: <strong>{{cfg.samba_user}}</strong> / <strong>{{cfg.samba_pass}}</strong></p>
+</div>
+
+<div class="warning">
+  <strong>Note:</strong> Two separate Samba instances run to support both modern (SMB2+) and legacy (SMB1) clients. 
+  Both serve the same files. Use port 445 for modern systems, port 4450 for DOS/Win9x.
+</div>
 
 <h2>Main share</h2>
-<p>Path: {{main.path}}</p>
-<ul>
-  <li>SMB2+/SMB3 clients: <code>\\{{cfg.hostname}}\\main</code></li>
-  <li>Legacy SMB1 clients: <code>\\{{cfg.hostname}}\\{{cfg.get('smb1_share_name', cfg.hostname ~ '-smb1')}}</code></li>
-</ul>
+<p>Path: <code>{{main.path}}</code></p>
 
 <h2>Removable drives</h2>
 {% if rem %}
   <ul>
   {% for r in rem %}
-    <li>{{r.name}} — mount: {{r.path}} — free_kb: {{r.free_kb}} — SMB1 alias: {{r.name}}-smb1</li>
+    <li><strong>{{r.name}}</strong> — Path: <code>{{r.path}}</code> — Free: {{r.free_kb}} KB
+      <br>Access: <code>\\{{cfg.hostname}}\{{r.name}}</code> (port 445) or <code>\\{{cfg.hostname}}:4450\{{r.name}}</code> (port 4450 for DOS)
+    </li>
   {% endfor %}
   </ul>
 {% else %}

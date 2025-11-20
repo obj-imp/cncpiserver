@@ -12,9 +12,29 @@ This document captures the architecture, design reasoning, tradeoffs, file layou
 - Removable USB storage handling is unchanged: udev rules mount devices beneath `/srv/shopserver/removable*` and `shopserver-generate-smb.py` emits per-device Samba stanzas.
 - The installer derives the filesystem/Samba owner from the invoking sudo user (falling back to `root`), removing the previous hard dependency on the `pi` account.
 
-## SMB protocol (2025-11 update)
+## Dual Samba architecture (2025-11 update)
 
-- Samba's global minimum protocol is set to SMB2_02 for security and macOS/Windows compatibility.
-- This means legacy SMB1-only clients (DOS/Win9x) cannot connect by default.
-- For mixed environments requiring SMB1, users must manually lower `server min protocol = NT1` in `/etc/samba/smb.conf`, but this will prevent macOS from connecting (macOS refuses SMB1).
-- The recommended approach for environments needing both is to run a separate Samba instance on a different port for SMB1 clients.
+ShopServer now runs two independent Samba daemons to support incompatible client requirements:
+
+### Modern instance (smbd on port 445)
+- Protocol: SMB2_02 minimum, SMB3 maximum
+- Clients: macOS (all versions), Windows 10+, modern Linux
+- Config: `/etc/samba/smb.conf`
+- Service: `smbd.service`, `nmbd.service`
+- Log: `/var/log/samba/smb2.log`
+- macOS compatibility: Includes `fruit` VFS module for metadata handling
+
+### Legacy instance (smbd-legacy on port 4450)
+- Protocol: NT1 (SMB1) only
+- Clients: DOS, Windows 9x, legacy systems
+- Config: `/etc/samba/smb-legacy.conf`
+- Service: `smbd-legacy.service`, `nmbd-legacy.service`
+- Log: `/var/log/samba/smb1.log`
+- Auth: Enables LANMAN and NTLMv1 for compatibility
+
+### Design rationale
+- macOS Ventura+ refuses to connect to servers advertising SMB1 as minimum protocol
+- DOS/Win9x cannot negotiate SMB2 or higher
+- Running separate instances on different ports allows both to coexist
+- Both instances include the same share definitions from `/etc/samba/smb.d/*.conf`
+- File permissions and ownership are identical across both instances

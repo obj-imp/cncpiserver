@@ -151,11 +151,14 @@ mkdir -p /usr/local/bin /etc/udev/rules.d /etc/samba/smb.d /opt/shopserver/ui /e
 cp -r "${REPO_DIR}/packaging/usr-local-bin/"* /usr/local/bin/
 cp "${REPO_DIR}/packaging/etc-udev/99-shopserver.rules" /etc/udev/rules.d/99-shopserver.rules
 cp "${REPO_DIR}/packaging/etc-samba/smb.conf" /etc/samba/smb.conf
+cp "${REPO_DIR}/packaging/etc-samba/smb-legacy.conf" /etc/samba/smb-legacy.conf
 cp "${REPO_DIR}/packaging/etc-samba/smb.d-main.conf" /etc/samba/smb.d/main.conf
 cp "${REPO_DIR}/packaging/etc-samba/smb.d-removable.conf" /etc/samba/smb.d/removable.conf
 cp -r "${REPO_DIR}/packaging/opt-shopserver-ui/"* /opt/shopserver/ui/
 cp "${REPO_DIR}/packaging/etc-systemd/shopserver-watcher.service" /etc/systemd/system/shopserver-watcher.service
 cp "${REPO_DIR}/packaging/etc-systemd/shopserver-ui.service" /etc/systemd/system/shopserver-ui.service
+cp "${REPO_DIR}/packaging/etc-systemd/smbd-legacy.service" /etc/systemd/system/smbd-legacy.service
+cp "${REPO_DIR}/packaging/etc-systemd/nmbd-legacy.service" /etc/systemd/system/nmbd-legacy.service
 cp "${REPO_DIR}/packaging/etc-shopserver-config.yaml" "${ETC_SHOPSERVER_DIR}/config.yaml.example" || true
 
 chmod +x /usr/local/bin/shopserver-*.sh || true
@@ -239,16 +242,34 @@ python3 -m venv /opt/shopserver/venv
 /opt/shopserver/venv/bin/pip install --upgrade pip
 /opt/shopserver/venv/bin/pip install flask pyyaml
 
+echo "Installing Samba VFS modules for macOS compatibility..."
+apt install -y samba-vfs-modules || true
+
 echo "Enabling services..."
 systemctl daemon-reload
 systemctl enable --now shopserver-watcher.service || true
 systemctl enable --now shopserver-ui.service || true
 systemctl enable --now avahi-daemon || true
 
+echo "Starting Samba services..."
+systemctl enable --now smbd nmbd || true
+systemctl enable --now smbd-legacy nmbd-legacy || true
+systemctl restart smbd nmbd || true
+systemctl restart smbd-legacy nmbd-legacy || true
+
 udevadm control --reload
 udevadm trigger --type=subsystems --action=change || true
 
-systemctl restart smbd nmbd || systemctl restart smbd || true
-
-echo "Installation complete. Reboot recommended."
+echo ""
+echo "============================================"
+echo "Installation complete!"
+echo "============================================"
+echo ""
 echo "Web UI: http://$HOSTNAME:5000/ or http://$(hostname -I | awk '{print $1}'):5000/"
+echo ""
+echo "File share access:"
+echo "  macOS/Windows/Linux: smb://$HOSTNAME/main (port 445, SMB2+)"
+echo "  DOS/Win9x:           \\\\$HOSTNAME:4450\\main (port 4450, SMB1)"
+echo ""
+echo "Reboot recommended."
+echo ""
